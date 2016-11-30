@@ -17,17 +17,17 @@ def analyze(maze):
     class Result():
         def __init__(self):
             self.distances = distances
-            self.is_reachable = (distances[maze > 0] >= 0).min()
-            self.directions = np.full(maze.shape, "#", dtype="<U1")
+            self.is_reachable = (distances[maze >= 0] >= 0).min()
+            self.directions = np.full(maze.shape, "#", dtype="|S1")
             # Empty spaces (not reachable)
-            self.directions[(maze > 0) & (distances == -1)] = " "
+            self.directions[(maze >= 0) & (distances == -1)] = " "
             for i in range(maze.shape[0]):
                 self.directions[i, predecessors[i, :, 0] == i-1] = "^"
                 self.directions[i, predecessors[i, :, 0] == i + 1] = "v"
             for i in range(maze.shape[1]):
                 self.directions[predecessors[:, i, 1] == i - 1, i] = "<"
                 self.directions[predecessors[:, i, 1] == i + 1, i] = ">"
-            self.directions[tuple(goal)] = "x"
+            self.directions[tuple(goal)] = "X"
 
             self.goal = tuple(goal)
 
@@ -65,13 +65,13 @@ def dijkstra(maze, start):
         south = u + (1, 0)
         east = u + (0, 1)
         west = u + (0, -1)
-        if north[0] >= 0 and maze[tuple(north)] > 0:
+        if north[0] >= 0 and maze[tuple(north)] >= 0:
             adj_list.append(north)
-        if south[0] < maze.shape[0] and maze[tuple(south)] > 0:
+        if south[0] < maze.shape[0] and maze[tuple(south)] >= 0:
             adj_list.append(south)
-        if east[1] < maze.shape[1] and maze[tuple(east)] > 0:
+        if east[1] < maze.shape[1] and maze[tuple(east)] >= 0:
             adj_list.append(east)
-        if west[1] >= 0 and maze[tuple(west)] > 0:
+        if west[1] >= 0 and maze[tuple(west)] >= 0:
             adj_list.append(west)
         return adj_list
 

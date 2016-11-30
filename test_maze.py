@@ -11,6 +11,7 @@ from math import inf
 from matplotlib import pyplot as plt
 from math import sqrt
 from maze import analyze
+import time
 import pytest
 
 @pytest.fixture()
@@ -35,10 +36,10 @@ def test_reachable(stored_maze1, stored_maze2):
 
 def test_directions(stored_maze2):
     a = analyze(stored_maze2[0])
-    assert(a.directions[20, 23] == " ")
-    assert(a.directions[0, 0] == "#")
-    assert(a.directions[0, 0] == "#")
-    assert(a.directions[10, 29] == "x")
+    assert(a.directions[20, 23] == b" ")
+    assert(a.directions[0, 0] == b"#")
+    assert(a.directions[0, 0] == b"#")
+    assert(a.directions[10, 29] == b"X")
     #some better tests could be here, such as following the direction signs
     
 def test_path(stored_maze2):
@@ -54,4 +55,6 @@ def test_path(stored_maze2):
 #visualise(mg.mi_pyt_maze(15, 100, 2, 2))
 
 
+def test_time():
+	pass
 
