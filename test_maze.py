@@ -10,19 +10,23 @@ from queue import PriorityQueue
 from math import inf
 from matplotlib import pyplot as plt
 from math import sqrt
-from maze import analyze
+from maze import analyze, visualise
 import time
 import pytest
 
 @pytest.fixture()
 def stored_maze1():
-    maze = np.fromfile("fixtures/maze.dat", dtype=np.int)
+    maze = np.fromfile("fixtures/maze.txt", sep=" ", dtype=np.int)
+    #maze.tofile("fixtures/maze.txt", sep=" ")
+    print (len(maze))
     maze = maze.reshape((sqrt(len(maze)), sqrt(len(maze))))
     return maze, True
 
 @pytest.fixture()
 def stored_maze2():
-    maze = np.fromfile("fixtures/not_reachable_maze.dat", dtype=np.int)
+    maze = np.fromfile("fixtures/not_reachable_maze.txt", sep=" ",
+                       dtype=np.int)
+    #maze.tofile("fixtures/not_reachable_maze.txt", sep=" ")
     maze = maze.reshape((sqrt(len(maze)), sqrt(len(maze))))
     return maze, False
 
@@ -53,7 +57,6 @@ def test_path(stored_maze2):
 # maze.tofile("fixtures/maze.dat")
 # visualise(maze)
 #visualise(mg.mi_pyt_maze(15, 100, 2, 2))
-
 
 def test_time():
 	pass
