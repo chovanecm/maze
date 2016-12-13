@@ -9,7 +9,7 @@ VALUE_ROLE = QtCore.Qt.UserRole
 GRASS_FILE = "pics/grass.svg"
 WALL_FILE = "pics/wall.svg"
 GOAL_FILE = "pics/castle.svg"
-DUDE1_FILE = "pics/dude1.svg"
+DUDE_FILE = "pics/dude%d.svg"
 DOWN_FILE = "pics/arrows/down.svg"
 LEFT_FILE = "pics/arrows/left.svg"
 RIGHT_FILE = "pics/arrows/right.svg"
@@ -17,7 +17,7 @@ UP_FILE = "pics/arrows/up.svg"
 SVG_GRASS = QtSvg.QSvgRenderer(GRASS_FILE)
 SVG_WALL = QtSvg.QSvgRenderer(WALL_FILE)
 SVG_GOAL = QtSvg.QSvgRenderer(GOAL_FILE)
-SVG_DUDE1 = QtSvg.QSvgRenderer(DUDE1_FILE)
+SVG_DUDES = [QtSvg.QSvgRenderer(DUDE_FILE % i) for i in range(1, 6)]
 SVG_DOWN = QtSvg.QSvgRenderer(DOWN_FILE)
 SVG_UP = QtSvg.QSvgRenderer(UP_FILE)
 SVG_RIGHT = QtSvg.QSvgRenderer(RIGHT_FILE)
@@ -38,6 +38,8 @@ def logical_to_pixels(row, column):
 
 
 class GridWidget(QtWidgets.QWidget):
+    # how often display arrow directions
+    ARROW_INTERVAL = 3
     def __init__(self, grid_model):
         super().__init__()
         self.set_model(grid_model)
@@ -55,8 +57,9 @@ class GridWidget(QtWidgets.QWidget):
         self.resize(*size)
         self.previous_result = None
         self.update()
-        self.grid_model.listeners.extend([lambda row, column, value: self.redraw_grid(row, column),
-                                          lambda row, column, value: self.draw_paths(row, column, value)]
+        self.grid_model.listeners.extend([lambda row, column, value, old_value: self.redraw_grid(row, column),
+                                          lambda row, column, value, old_value: self.draw_paths(row, column, value,
+                                                                                                old_value)]
                                          )
 
     def paintEvent(self, event):
@@ -96,12 +99,14 @@ class GridWidget(QtWidgets.QWidget):
                 if line is not None:
                     SVG_LINES[line[0]].render(painter, rect)
                     # draw arrow
-                    line[1].render(painter, rect)
+                    if line[1] is not None:
+                        line[1].render(painter, rect)
 
 
                 # Dudes
-                if self.grid_model.array[row, column] == 10:
-                    SVG_DUDE1.render(painter, rect)
+                if self.grid_model.array[row, column] in self.grid_model.DUDE_VALUES:
+                    SVG_DUDES[self.grid_model.array[row, column] - min(self.grid_model.DUDE_VALUES)].render(painter,
+                                                                                                            rect)
 
     def mousePressEvent(self, event):
         row, column = pixels_to_logical(event.x(), event.y())
@@ -117,31 +122,34 @@ class GridWidget(QtWidgets.QWidget):
     def redraw_grid(self, row, column):
         self.update(*logical_to_pixels(row, column), CELL_SIZE, CELL_SIZE)
 
-    def draw_paths(self, row, column, value):
+    def draw_paths(self, row, column, value, old_value):
         # If there is no goal or a new goal, remove old paths
-        if self.grid_model.result != self.previous_result or value == self.grid_model.GOAL_VALUE:
+        result = self.grid_model.result
+        if self.grid_model.result != self.previous_result or value == self.grid_model.GOAL_VALUE \
+                or (value != old_value and old_value in self.grid_model.DUDE_VALUES):
             fields_to_clean = [f for f in self.fields_with_paths]
             self.fields_with_paths.clear()
             for path in fields_to_clean:
                 self.redraw_grid(path[0], path[1])
 
         if self.grid_model.result is not None:
-            if value in self.grid_model.DUDE_VALUES:
+            if (value in self.grid_model.DUDE_VALUES) and self.grid_model.result == self.previous_result:
                 # we only add the new path
                 dudes_to_process = [(row, column)]
             else:
                 # Redraw all paths
                 dudes_to_process = self.grid_model.dudes
-            result = self.grid_model.result
             for dude in dudes_to_process:
                 try:
                     dude_path = result.path(dude[0], dude[1])
                     for i in range(1, len(dude_path) - 1):
                         path_element = dude_path[i]
                         previous_path_element = dude_path[i - 1]
-                        path_field = self.fields_with_paths.get(path_element, [0, 0])
+                        path_field = self.fields_with_paths.get(path_element, [0, None, 0])
                         direction_to_here = result.directions[tuple(previous_path_element)]
                         direction_from_here = result.directions[tuple(path_element)]
+                        # increase counter (how many dudes are using this path)
+                        path_field[2] += 1
                         if direction_to_here == b"^":
                             # set bitwise flags
                             path_field[0] = path_field[0] | 4
@@ -156,16 +164,20 @@ class GridWidget(QtWidgets.QWidget):
                             # set bitwise flags
                             path_field[0] = path_field[0] | 1
                             # set arrow
-                            path_field[1] = SVG_UP
+                            if i % self.ARROW_INTERVAL == 0:
+                                path_field[1] = SVG_UP
                         elif direction_from_here == b"v":
                             path_field[0] = path_field[0] | 4
-                            path_field[1] = SVG_DOWN
+                            if i % self.ARROW_INTERVAL == 0:
+                                path_field[1] = SVG_DOWN
                         elif direction_from_here == b"<":
                             path_field[0] = path_field[0] | 2
-                            path_field[1] = SVG_LEFT
+                            if i % self.ARROW_INTERVAL == 0:
+                                path_field[1] = SVG_LEFT
                         elif direction_from_here == b">":
                             path_field[0] = path_field[0] | 8
-                            path_field[1] = SVG_RIGHT
+                            if i % self.ARROW_INTERVAL == 0:
+                                path_field[1] = SVG_RIGHT
 
                         self.fields_with_paths[path_element] = path_field
                 except IndexError:
@@ -195,7 +207,9 @@ def main():
     add_palette_item(palette, "Grass", GRASS_FILE, 0)
     add_palette_item(palette, "Wall", WALL_FILE, -1)
     add_palette_item(palette, "Goal", GOAL_FILE, 1)
-    add_palette_item(palette, "Dude 1", DUDE1_FILE, 10)
+    for dude in range(len(SVG_DUDES)):
+        add_palette_item(palette, "Dude %d" % (dude + 1), DUDE_FILE % (dude + 1),
+                         dude + min(grid.grid_model.DUDE_VALUES))
 
     def item_activated():
         for item in palette.selectedItems():
