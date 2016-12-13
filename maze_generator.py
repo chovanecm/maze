@@ -90,7 +90,7 @@ from numpy.random import randint
 import matplotlib.pyplot as pyplot
 
 
-def maze(width=81, height=51, complexity=.75, density=.75):
+def maze(width=81, height=51, complexity=.75, density=.75, progress_function=None):
     # Only odd shapes
     shape = ((height // 2) * 2 + 1, (width // 2) * 2 + 1)
     # Adjust complexity and density relative to maze size
@@ -101,11 +101,17 @@ def maze(width=81, height=51, complexity=.75, density=.75):
     # Fill borders
     Z[0, :] = Z[-1, :] = 1
     Z[:, 0] = Z[:, -1] = 1
+
+    total_iterations = density * complexity
+    iteration = 0
     # Make aisles
     for i in range(density):
         x, y = randint(0, shape[1] // 2) * 2, randint(0, shape[0] // 2) * 2
         Z[y, x] = 1
         for j in range(complexity):
+            iteration += 1
+            if iteration % 100000 == 0 and progress_function is not None:
+                progress_function(iteration / total_iterations)
             neighbours = []
             if x > 1:             neighbours.append((y, x - 2))
             if x < shape[1] - 2:  neighbours.append((y, x + 2))
@@ -119,16 +125,29 @@ def maze(width=81, height=51, complexity=.75, density=.75):
                     x, y = x_, y_
     return Z
 
-def mi_pyt_maze(*args, **kwargs):
-    #in output False = ok, True = maze, we want it vice versa
-    m = maze(*args, **kwargs)
+
+def transform_maze(m):
+    """
+    Transform maze to our format
+    :param m:
+    :type m:
+    :return:
+    :rtype:
+    """
     inverted = np.invert(m)
     # Convert True to 2 and False to -1
     m_n = np.apply_over_axes(lambda e, ee: e * 3 - 1, inverted, [0])
-    #Add goal:
+    # Add goal:
     possible_goals = np.argwhere(inverted)
     goal_index = np.random.randint(0, len(possible_goals))
     m_n[tuple(possible_goals[goal_index])] = 1
+    return m_n
+
+
+def mi_pyt_maze(*args, **kwargs):
+    # in output False = ok, True = maze, we want it vice versa
+    m = maze(*args, **kwargs)
+    m_n = transform_maze(m)
 
     pyplot.figure(figsize=(10, 5))
     pyplot.imshow(np.invert(m_n), cmap=pyplot.cm.binary, interpolation='nearest')

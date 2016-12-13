@@ -232,8 +232,25 @@ def main():
         cols = dialog.findChild(QtWidgets.QSpinBox, "widthBox").value()
         rows = dialog.findChild(QtWidgets.QSpinBox, "heightBox").value()
         random = dialog.findChild(QtWidgets.QCheckBox, "randomCheckBox").isChecked()
+
+        PROGRESS_BAR_LENGTH = 20
+        progressbar_maze = np.zeros((1, PROGRESS_BAR_LENGTH + 1), dtype=np.int8)
+        progressbar_maze[0, 0] = 10
+        progressbar_maze[0, PROGRESS_BAR_LENGTH] = 1
+        grid.set_model(gridmodel.GridModel(progressbar_maze))
+
+        def progress_bar(progress):
+            i = round(progress * PROGRESS_BAR_LENGTH)
+            # put dude
+            grid.grid_model.set_field(0, i, 10)
+            for j in range(i):
+                grid.grid_model.set_field(0, j, 0)
+            app.processEvents()
+
         if random:
-            grid.set_model(gridmodel.GridModel(mg.mi_pyt_maze(cols, rows)))
+            maze = mg.mi_pyt_maze(cols, rows, progress_function=progress_bar)
+            final_gm = gridmodel.GridModel(maze)
+            grid.set_model(final_gm)
         else:
             grid.set_model(gridmodel.GridModel(np.zeros((rows, cols), dtype=np.int8)))
 
