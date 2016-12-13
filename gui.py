@@ -10,10 +10,19 @@ GRASS_FILE = "pics/grass.svg"
 WALL_FILE = "pics/wall.svg"
 GOAL_FILE = "pics/castle.svg"
 DUDE1_FILE = "pics/dude1.svg"
+DOWN_FILE = "pics/arrows/down.svg"
+LEFT_FILE = "pics/arrows/left.svg"
+RIGHT_FILE = "pics/arrows/right.svg"
+UP_FILE = "pics/arrows/up.svg"
 SVG_GRASS = QtSvg.QSvgRenderer(GRASS_FILE)
 SVG_WALL = QtSvg.QSvgRenderer(WALL_FILE)
 SVG_GOAL = QtSvg.QSvgRenderer(GOAL_FILE)
 SVG_DUDE1 = QtSvg.QSvgRenderer(DUDE1_FILE)
+SVG_DOWN = QtSvg.QSvgRenderer(DOWN_FILE)
+SVG_UP = QtSvg.QSvgRenderer(UP_FILE)
+SVG_RIGHT = QtSvg.QSvgRenderer(RIGHT_FILE)
+SVG_LEFT = QtSvg.QSvgRenderer(LEFT_FILE)
+
 SVG_LINE_PATTERN = "pics/lines/%d.svg"
 # just to have 1-based indexing, we use none for the first value
 SVG_LINES = [None]
@@ -85,7 +94,11 @@ class GridWidget(QtWidgets.QWidget):
 
                 line = self.fields_with_paths.get((row, column))
                 if line is not None:
-                    SVG_LINES[line].render(painter, rect)
+                    SVG_LINES[line[0]].render(painter, rect)
+                    # draw arrow
+                    line[1].render(painter, rect)
+
+
                 # Dudes
                 if self.grid_model.array[row, column] == 10:
                     SVG_DUDE1.render(painter, rect)
@@ -126,28 +139,33 @@ class GridWidget(QtWidgets.QWidget):
                     for i in range(1, len(dude_path) - 1):
                         path_element = dude_path[i]
                         previous_path_element = dude_path[i - 1]
-                        path_field = self.fields_with_paths.get(path_element, 0)
+                        path_field = self.fields_with_paths.get(path_element, [0, 0])
                         direction_to_here = result.directions[tuple(previous_path_element)]
                         direction_from_here = result.directions[tuple(path_element)]
                         if direction_to_here == b"^":
                             # set bitwise flags
-                            path_field = path_field | 4
+                            path_field[0] = path_field[0] | 4
                         elif direction_to_here == b"v":
-                            path_field = path_field | 1
+                            path_field[0] = path_field[0] | 1
                         elif direction_to_here == b"<":
-                            path_field = path_field | 8
+                            path_field[0] = path_field[0] | 8
                         elif direction_to_here == b">":
-                            path_field = path_field | 2
+                            path_field[0] = path_field[0] | 2
 
                         if direction_from_here == b"^":
                             # set bitwise flags
-                            path_field = path_field | 1
+                            path_field[0] = path_field[0] | 1
+                            # set arrow
+                            path_field[1] = SVG_UP
                         elif direction_from_here == b"v":
-                            path_field = path_field | 4
+                            path_field[0] = path_field[0] | 4
+                            path_field[1] = SVG_DOWN
                         elif direction_from_here == b"<":
-                            path_field = path_field | 2
+                            path_field[0] = path_field[0] | 2
+                            path_field[1] = SVG_LEFT
                         elif direction_from_here == b">":
-                            path_field = path_field | 8
+                            path_field[0] = path_field[0] | 8
+                            path_field[1] = SVG_RIGHT
 
                         self.fields_with_paths[path_element] = path_field
                 except IndexError:
