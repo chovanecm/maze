@@ -133,6 +133,6 @@ def mi_pyt_maze(*args, **kwargs):
     pyplot.figure(figsize=(10, 5))
     pyplot.imshow(np.invert(m_n), cmap=pyplot.cm.binary, interpolation='nearest')
     pyplot.xticks([]), pyplot.yticks([])
-    pyplot.show()
+    # pyplot.show()
     pyplot.savefig("maze.png")
     return m_n

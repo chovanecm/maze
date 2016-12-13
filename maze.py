@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 from math import sqrt
 
 def analyze(maze):
-    goal = np.argwhere(maze == 1)[0]
+    goal = find_goal(maze)
     distances, predecessors = dijkstra(maze, goal)
     class Result():
         def __init__(self):
@@ -44,6 +44,14 @@ def analyze(maze):
             return shortest_path
 
     return Result()
+
+
+def find_goal(maze):
+    goal = np.argwhere(maze == 1)
+    if goal is not None and len(goal) > 0:
+        return goal[0]
+    else:
+        return None
 
 
 def dijkstra(maze, start):
@@ -89,11 +97,6 @@ def dijkstra(maze, start):
 
     return distances, predecessors
 
-def get_maze_from_file(file):
-    maze = np.fromfile(file, dtype=int)
-    #assume square shape
-    dim = sqrt()
-    return maze.reshape(())
 
 
 def visualise(maze):
