@@ -255,7 +255,7 @@ def main():
             grid.set_model(gridmodel.GridModel(np.zeros((rows, cols), dtype=np.int8)))
 
     action = window.findChild(QtWidgets.QAction, "actionNew")
-    action.triggered.connect(lambda: new_dialog(window))
+    action.triggered.connect(lambda: action.setEnabled(False) or new_dialog(window) or action.setEnabled(True))
     window.show()
     app.exec()
 
