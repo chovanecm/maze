@@ -14,7 +14,11 @@ SVG_GRASS = QtSvg.QSvgRenderer(GRASS_FILE)
 SVG_WALL = QtSvg.QSvgRenderer(WALL_FILE)
 SVG_GOAL = QtSvg.QSvgRenderer(GOAL_FILE)
 SVG_DUDE1 = QtSvg.QSvgRenderer(DUDE1_FILE)
-
+SVG_LINE_PATTERN = "pics/lines/%d.svg"
+# just to have 1-based indexing, we use none for the first value
+SVG_LINES = [None]
+for i in range(1, 16):
+    SVG_LINES.append(QtSvg.QSvgRenderer(SVG_LINE_PATTERN % i))
 
 def pixels_to_logical(x, y):
     return y // CELL_SIZE, x // CELL_SIZE
@@ -28,15 +32,23 @@ class GridWidget(QtWidgets.QWidget):
     def __init__(self, grid_model):
         super().__init__()
         self.set_model(grid_model)
+        # fields_with_paths is a list of (row, column, path_type) where path_type indicates
+        #  which graphic should be used from pics/lines
+        self.fields_with_paths = {}
+        self.previous_result = None
 
     def set_model(self, grid_model):
         self.grid_model = grid_model
         size = logical_to_pixels(*grid_model.array.shape)
+        self.fields_with_paths = {}
         self.setMinimumSize(*size)
         self.setMaximumSize(*size)
         self.resize(*size)
+        self.previous_result = None
         self.update()
-        self.grid_model.listeners.append(lambda row, column, value: self.redraw_grid(row, column))
+        self.grid_model.listeners.extend([lambda row, column, value: self.redraw_grid(row, column),
+                                          lambda row, column, value: self.draw_paths(row, column, value)]
+                                         )
 
     def paintEvent(self, event):
         rect = event.rect()
@@ -70,6 +82,10 @@ class GridWidget(QtWidgets.QWidget):
                 # goal
                 if self.grid_model.array[row, column] == 1:
                     SVG_GOAL.render(painter, rect)
+
+                line = self.fields_with_paths.get((row, column))
+                if line is not None:
+                    SVG_LINES[line].render(painter, rect)
                 # Dudes
                 if self.grid_model.array[row, column] == 10:
                     SVG_DUDE1.render(painter, rect)
@@ -87,6 +103,61 @@ class GridWidget(QtWidgets.QWidget):
 
     def redraw_grid(self, row, column):
         self.update(*logical_to_pixels(row, column), CELL_SIZE, CELL_SIZE)
+
+    def draw_paths(self, row, column, value):
+        # If there is no goal or a new goal, remove old paths
+        if self.grid_model.result != self.previous_result or value == self.grid_model.GOAL_VALUE:
+            fields_to_clean = [f for f in self.fields_with_paths]
+            self.fields_with_paths.clear()
+            for path in fields_to_clean:
+                self.redraw_grid(path[0], path[1])
+
+        if self.grid_model.result is not None:
+            if value in self.grid_model.DUDE_VALUES:
+                # we only add the new path
+                dudes_to_process = [(row, column)]
+            else:
+                # Redraw all paths
+                dudes_to_process = self.grid_model.dudes
+            result = self.grid_model.result
+            for dude in dudes_to_process:
+                try:
+                    dude_path = result.path(dude[0], dude[1])
+                    for i in range(1, len(dude_path) - 1):
+                        path_element = dude_path[i]
+                        previous_path_element = dude_path[i - 1]
+                        path_field = self.fields_with_paths.get(path_element, 0)
+                        direction_to_here = result.directions[tuple(previous_path_element)]
+                        direction_from_here = result.directions[tuple(path_element)]
+                        if direction_to_here == b"^":
+                            # set bitwise flags
+                            path_field = path_field | 4
+                        elif direction_to_here == b"v":
+                            path_field = path_field | 1
+                        elif direction_to_here == b"<":
+                            path_field = path_field | 8
+                        elif direction_to_here == b">":
+                            path_field = path_field | 2
+
+                        if direction_from_here == b"^":
+                            # set bitwise flags
+                            path_field = path_field | 1
+                        elif direction_from_here == b"v":
+                            path_field = path_field | 4
+                        elif direction_from_here == b"<":
+                            path_field = path_field | 2
+                        elif direction_from_here == b">":
+                            path_field = path_field | 8
+
+                        self.fields_with_paths[path_element] = path_field
+                except IndexError:
+                    # Probably no way from this point
+                    continue
+
+            for path_element in self.fields_with_paths:
+                self.redraw_grid(path_element[0], path_element[1])
+        self.previous_result = self.grid_model.result
+
 
 
 def main():
