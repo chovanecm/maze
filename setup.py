@@ -28,6 +28,6 @@ setup(
             "maze = gui:main"
         ]
     },
-    install_requires=["numpty", "pytest", "matplotlib", "PyQt5"],
+    install_requires=["numpy", "pytest", "matplotlib", "PyQt5"],
     version="0.3"
 )
