@@ -271,9 +271,33 @@ def main():
         else:
             grid.set_model(gridmodel.GridModel(np.zeros((rows, cols), dtype=np.int8)))
 
+    def save_maze(grid_model, window):
+        fname = QtWidgets.QFileDialog.getSaveFileName(window, "Save File",
+                                                      "/home/jana/untitled.png",
+                                                      "Mazes (*.txt *.dat *.maze)");
+        try:
+            np.savetxt(fname[0], grid_model.array)
+        except:
+            pass
+
+    def open_maze(widnow):
+        fname = QtWidgets.QFileDialog.getOpenFileName(window, "Open File",
+                                                      "/home/jana/untitled.png",
+                                                      "Mazes (*.txt *.dat *.maze)");
+        try:
+            array = np.loadtxt(fname[0], dtype=np.int8)
+            grid.set_model(gridmodel.GridModel(array))
+            # force redraw
+            grid.draw_paths(0, 0, 0, 0)
+        except:
+            pass
+
     action = window.findChild(QtWidgets.QAction, "actionNew")
     action.triggered.connect(lambda: action.setEnabled(False) or new_dialog(window) or action.setEnabled(True))
-
+    action = window.findChild(QtWidgets.QAction, "actionOpen")
+    action.triggered.connect(lambda: open_maze(window))
+    action = window.findChild(QtWidgets.QAction, "actionSave_As")
+    action.triggered.connect(lambda: save_maze(grid.grid_model, window))
     window.show()
     app.exec()
 
@@ -283,6 +307,7 @@ def add_palette_item(palette, name, image, value):
     item.setIcon(QtGui.QIcon(image))
     item.setData(VALUE_ROLE, value)
     palette.addItem(item)
+
 
 if __name__ == "__main__":
     main()

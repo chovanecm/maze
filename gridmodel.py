@@ -1,5 +1,5 @@
 import maze
-
+import numpy as np
 
 class GridModel:
     GOAL_VALUE = 1
@@ -12,10 +12,15 @@ class GridModel:
         self.on_goal_removed = 0
 
         self.listeners = [lambda row, column, value, old_value: self._recalculate_paths(row, column, value, old_value)]
-        self.dudes = []
+        self.dudes = self.find_dudes()
         self.result = None
         if self.goal is not None:
             self.goal = tuple(self.goal)
+            if len(self.dudes) > 0:
+                self._recalculate_paths(0, 0, -1, -1)
+
+    def find_dudes(self):
+        return [tuple(x) for x in np.argwhere(self.array >= min(self.DUDE_VALUES))]
 
     def set_goal(self, row, column):
         old_value = self.array[row, column]
