@@ -29,6 +29,7 @@ SVG_LINES = [None]
 for i in range(1, 16):
     SVG_LINES.append(QtSvg.QSvgRenderer(SVG_LINE_PATTERN % i))
 
+
 def pixels_to_logical(x, y):
     return y // CELL_SIZE, x // CELL_SIZE
 
@@ -40,6 +41,7 @@ def logical_to_pixels(row, column):
 class GridWidget(QtWidgets.QWidget):
     # how often display arrow directions
     ARROW_INTERVAL = 3
+
     def __init__(self, grid_model):
         super().__init__()
         self.set_model(grid_model)
@@ -49,18 +51,23 @@ class GridWidget(QtWidgets.QWidget):
         self.previous_result = None
 
     def set_model(self, grid_model):
+        global CELL_SIZE
+        CELL_SIZE = 32
         self.grid_model = grid_model
-        size = logical_to_pixels(*grid_model.array.shape)
         self.fields_with_paths = {}
-        self.setMinimumSize(*size)
-        self.setMaximumSize(*size)
-        self.resize(*size)
+        self.reset_size()
         self.previous_result = None
         self.update()
         self.grid_model.listeners.extend([lambda row, column, value, old_value: self.redraw_grid(row, column),
                                           lambda row, column, value, old_value: self.draw_paths(row, column, value,
                                                                                                 old_value)]
                                          )
+
+    def reset_size(self):
+        size = logical_to_pixels(*self.grid_model.array.shape)
+        self.setMinimumSize(*size)
+        self.setMaximumSize(*size)
+        self.resize(*size)
 
     def paintEvent(self, event):
         rect = event.rect()
@@ -102,7 +109,6 @@ class GridWidget(QtWidgets.QWidget):
                     if line[1] is not None:
                         line[1].render(painter, rect)
 
-
                 # Dudes
                 if self.grid_model.array[row, column] in self.grid_model.DUDE_VALUES:
                     SVG_DUDES[self.grid_model.array[row, column] - min(self.grid_model.DUDE_VALUES)].render(painter,
@@ -117,7 +123,18 @@ class GridWidget(QtWidgets.QWidget):
             elif event.button() == QtCore.Qt.RightButton:
                 self.grid_model.set_field(row, column, 0)
             else:
+
                 return
+
+    def wheelEvent(self, event):
+        global CELL_SIZE
+        if event.modifiers() == QtCore.Qt.ControlModifier:
+            if event.angleDelta().y() > 0:
+                CELL_SIZE += 10
+            elif event.angleDelta().y() < 0:
+                CELL_SIZE = max(CELL_SIZE - 10, 2)
+            self.reset_size()
+            self.update()
 
     def redraw_grid(self, row, column):
         self.update(*logical_to_pixels(row, column), CELL_SIZE, CELL_SIZE)
@@ -189,7 +206,6 @@ class GridWidget(QtWidgets.QWidget):
         self.previous_result = self.grid_model.result
 
 
-
 def main():
     app = QtWidgets.QApplication([])
     window = QtWidgets.QMainWindow()
@@ -233,11 +249,12 @@ def main():
         rows = dialog.findChild(QtWidgets.QSpinBox, "heightBox").value()
         random = dialog.findChild(QtWidgets.QCheckBox, "randomCheckBox").isChecked()
 
-        PROGRESS_BAR_LENGTH = 20
+        PROGRESS_BAR_LENGTH = 15
         progressbar_maze = np.zeros((1, PROGRESS_BAR_LENGTH + 1), dtype=np.int8)
-        progressbar_maze[0, 0] = 10
+
         progressbar_maze[0, PROGRESS_BAR_LENGTH] = 1
         grid.set_model(gridmodel.GridModel(progressbar_maze))
+        grid.grid_model.set_field(0, 0, 10)
 
         def progress_bar(progress):
             i = round(progress * PROGRESS_BAR_LENGTH)
@@ -256,6 +273,7 @@ def main():
 
     action = window.findChild(QtWidgets.QAction, "actionNew")
     action.triggered.connect(lambda: action.setEnabled(False) or new_dialog(window) or action.setEnabled(True))
+
     window.show()
     app.exec()
 
@@ -265,7 +283,6 @@ def add_palette_item(palette, name, image, value):
     item.setIcon(QtGui.QIcon(image))
     item.setData(VALUE_ROLE, value)
     palette.addItem(item)
-
 
 if __name__ == "__main__":
     main()

@@ -110,7 +110,8 @@ def maze(width=81, height=51, complexity=.75, density=.75, progress_function=Non
         Z[y, x] = 1
         for j in range(complexity):
             iteration += 1
-            if iteration % 100000 == 0 and progress_function is not None:
+            #  & 131072 is a power of 2
+            if iteration & 131071 == 0 and progress_function is not None:
                 progress_function(iteration / total_iterations)
             neighbours = []
             if x > 1:             neighbours.append((y, x - 2))
