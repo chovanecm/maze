@@ -115,8 +115,14 @@ class GridWidget(QtWidgets.QWidget):
 
                 # Dudes
                 if self.grid_model.array[row, column] in self.grid_model.DUDE_VALUES:
-                    SVG_DUDES[self.grid_model.array[row, column] - min(self.grid_model.DUDE_VALUES)].render(painter,
-                                                                                                            rect)
+                    dude_type = self.grid_model.array[row, column]
+                    self._draw_dude(rect, dude_type, painter)
+
+    def _draw_dude(self, rect, dude_type, painter):
+        print(type(rect))
+        dude_type = dude_type - min(self.grid_model.DUDE_VALUES)
+        SVG_DUDES[dude_type].render(painter,
+                                    rect)
 
     def mousePressEvent(self, event):
         row, column = pixels_to_logical(event.x(), event.y())
@@ -298,12 +304,53 @@ def main():
         except:
             pass
 
+    def game_mode():
+        import maze_game
+        import actor
+
+        class GameWidget(GridWidget):
+            def __init__(self, grid_model):
+                GridWidget.__init__(self, grid_model)
+                self.moving_dudes = []
+
+            def paintEvent(self, event):
+                GridWidget.paintEvent(self, event)
+                rect = event.rect()
+                rect = QtCore.QRectF(rect.left(), rect.top(), CELL_SIZE, CELL_SIZE)
+                painter = QtGui.QPainter(self)
+                for dude in self.moving_dudes:
+                    self._draw_dude(rect, dude[2], painter)
+                print("Painting")
+
+        class GridModelWrapper(maze_game.AbstractGridModelWrapper):
+            def __init__(self, grid_model: gridmodel.GridModel, game_grid: GameWidget):
+                maze_game.AbstractGridModelWrapper.__init__(self, grid_model)
+                self.game_grid = game_grid
+
+            @property
+            def cell_size(self):
+                return CELL_SIZE
+
+            def update_actor(self, actor: actor.Actor):
+                maze_game.AbstractGridModelWrapper.update_actor(self, actor)
+                self.game_grid.moving_dudes.append((actor.row, actor.column, actor.kind))
+                self.game_grid.redraw_grid(actor.row, actor.column)
+
+        game_grid = GameWidget(grid.grid_model)
+        scroll_area.setWidget(game_grid)
+        game = maze_game.Game(GridModelWrapper(grid.grid_model, game_grid))
+        # loop.run_until_complete(game.run())
+        asyncio.ensure_future(game.run())
+
     action = window.findChild(QtWidgets.QAction, "actionNew")
     action.triggered.connect(lambda: action.setEnabled(False) or new_dialog(window) or action.setEnabled(True))
     action = window.findChild(QtWidgets.QAction, "actionOpen")
     action.triggered.connect(lambda: open_maze(window))
     action = window.findChild(QtWidgets.QAction, "actionSave_As")
     action.triggered.connect(lambda: save_maze(grid.grid_model, window))
+
+    action = window.findChild(QtWidgets.QAction, "actionGameMode")
+    action.triggered.connect(lambda: game_mode())
     window.show()
 
     # app.exec()

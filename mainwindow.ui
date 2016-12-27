@@ -60,8 +60,16 @@
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
     <addaction name="actionSave_As"/>
+       <addaction name="actionQuit_Without_Saving"/>
    </widget>
+      <widget class="QMenu" name="menuGame">
+          <property name="title">
+              <string>Game</string>
+          </property>
+          <addaction name="actionGameMode"/>
+      </widget>
    <addaction name="menuMenu"/>
+      <addaction name="menuGame"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionNew">
@@ -85,7 +93,40 @@
     <string>Ctrl+S</string>
    </property>
   </action>
+     <action name="actionGameMode">
+         <property name="checkable">
+             <bool>true</bool>
+         </property>
+         <property name="text">
+             <string>Game Mode</string>
+         </property>
+         <property name="shortcut">
+             <string>Ctrl+R</string>
+         </property>
+     </action>
+     <action name="actionQuit_Without_Saving">
+         <property name="text">
+             <string>Quit Without Saving</string>
+         </property>
+     </action>
  </widget>
  <resources/>
- <connections/>
+    <connections>
+        <connection>
+            <sender>actionQuit_Without_Saving</sender>
+            <signal>triggered()</signal>
+            <receiver>MainWindow</receiver>
+            <slot>close()</slot>
+            <hints>
+                <hint type="sourcelabel">
+                    <x>-1</x>
+                    <y>-1</y>
+                </hint>
+                <hint type="destinationlabel">
+                    <x>399</x>
+                    <y>299</y>
+                </hint>
+            </hints>
+        </connection>
+    </connections>
 </ui>
