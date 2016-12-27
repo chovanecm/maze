@@ -6,7 +6,7 @@ import asyncio
 
 class AbstractGridModelWrapper:
     def __init__(self, grid_model: gridmodel.GridModel):
-        self.grid_model = grid_model
+        self.grid_model = gridmodel.GridModel(grid_model.array.copy())
 
     def update_actor(self, actor: actor.Actor):
         row = (int)(actor.row)
@@ -33,6 +33,9 @@ class Game:
             (maze >= min(gridmodel.GridModel.DUDE_VALUES)) & (maze <= max(grid_model.DUDE_VALUES)))
         self.actors = [actor.Actor(wrapped_grid_model, row, column, wrapped_grid_model.grid_model.array[row, column])
                        for row, column in dude_positions]
+        # remove guys from startup positions in the game copy of array
+        for dude_position in dude_positions:
+            maze[tuple(dude_position)] = 0
 
     async def run(self):
         for actor in self.actors:

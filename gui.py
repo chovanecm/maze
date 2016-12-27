@@ -119,7 +119,6 @@ class GridWidget(QtWidgets.QWidget):
                     self._draw_dude(rect, dude_type, painter)
 
     def _draw_dude(self, rect, dude_type, painter):
-        print(type(rect))
         dude_type = dude_type - min(self.grid_model.DUDE_VALUES)
         SVG_DUDES[dude_type].render(painter,
                                     rect)
@@ -148,6 +147,7 @@ class GridWidget(QtWidgets.QWidget):
 
     def redraw_grid(self, row, column):
         self.update(*logical_to_pixels(row, column), CELL_SIZE, CELL_SIZE)
+
 
     def draw_paths(self, row, column, value, old_value):
         # If there is no goal or a new goal, remove old paths
@@ -310,17 +310,22 @@ def main():
 
         class GameWidget(GridWidget):
             def __init__(self, grid_model):
+                self.grid_model_wrapper = GridModelWrapper(grid_model, self)
+                grid_model = self.grid_model_wrapper.grid_model
                 GridWidget.__init__(self, grid_model)
                 self.moving_dudes = []
 
             def paintEvent(self, event):
                 GridWidget.paintEvent(self, event)
                 rect = event.rect()
-                rect = QtCore.QRectF(rect.left(), rect.top(), CELL_SIZE, CELL_SIZE)
                 painter = QtGui.QPainter(self)
-                for dude in self.moving_dudes:
-                    self._draw_dude(rect, dude[2], painter)
-                print("Painting")
+                for actor in self.moving_dudes:
+                    rect = QtCore.QRectF(actor.column * CELL_SIZE, actor.row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+                    self._draw_dude(rect, actor.kind, painter)
+
+            def draw_paths(self, row, column, value, old_value):
+                # Do not draw paths
+                pass
 
         class GridModelWrapper(maze_game.AbstractGridModelWrapper):
             def __init__(self, grid_model: gridmodel.GridModel, game_grid: GameWidget):
@@ -333,12 +338,15 @@ def main():
 
             def update_actor(self, actor: actor.Actor):
                 maze_game.AbstractGridModelWrapper.update_actor(self, actor)
-                self.game_grid.moving_dudes.append((actor.row, actor.column, actor.kind))
+                if actor not in self.game_grid.moving_dudes:
+                    self.game_grid.moving_dudes.append(actor)
                 self.game_grid.redraw_grid(actor.row, actor.column)
 
         game_grid = GameWidget(grid.grid_model)
+        game_grid.selected = 0
         scroll_area.setWidget(game_grid)
-        game = maze_game.Game(GridModelWrapper(grid.grid_model, game_grid))
+        game = maze_game.Game(game_grid.grid_model_wrapper)
+
         # loop.run_until_complete(game.run())
         asyncio.ensure_future(game.run())
 
