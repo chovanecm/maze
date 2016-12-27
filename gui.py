@@ -1,7 +1,11 @@
 from PyQt5 import QtWidgets, uic, QtGui, QtSvg, QtCore
+# from PyQt5.QtCore.__init__ import QEventLoop
+
 import maze, maze_generator as mg
 import gridmodel
 import numpy as np
+from quamash import QEventLoop
+import asyncio
 
 CELL_SIZE = 32
 
@@ -208,6 +212,8 @@ class GridWidget(QtWidgets.QWidget):
 
 def main():
     app = QtWidgets.QApplication([])
+    loop = QEventLoop(app)
+    asyncio.set_event_loop(loop)
     window = QtWidgets.QMainWindow()
     with open("mainwindow.ui") as f:
         uic.loadUi(f, window)
@@ -299,7 +305,9 @@ def main():
     action = window.findChild(QtWidgets.QAction, "actionSave_As")
     action.triggered.connect(lambda: save_maze(grid.grid_model, window))
     window.show()
-    app.exec()
+
+    # app.exec()
+    loop.run_forever()
 
 
 def add_palette_item(palette, name, image, value):

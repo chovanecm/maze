@@ -113,4 +113,7 @@ def visualise(maze):
 #visualise(mg.mi_pyt_maze(15, 100, 2, 2))
 
 
+if __name__ == "__main__":
+    import gui
 
+    gui.main()
