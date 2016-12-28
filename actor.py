@@ -2,7 +2,8 @@
 import asyncio
 import contextlib
 import time
-
+import random
+import numpy as np
 
 class Actor:
     def __init__(self, grid, row, column, kind):
@@ -130,3 +131,59 @@ class Actor:
 
         with self._update_context():
             self.row = start_row
+
+
+class TeleporterActor(Actor):
+    def __init__(self, *args, **kwargs):
+        Actor.__init__(self, *args, **kwargs)
+
+    async def behavior(self):
+        """Coroutine containing the actor's behavior
+        The base implementation follows directions the actor is standing on.
+        If there is no directions (e.g. standing on a wall, unreachable space,
+        or on the goal), the actor jumps repeatedly.
+        To be reimplemented in subclasses..
+        """
+        while True:
+            print(time.monotonic(), self.row, self.column)
+            shape = self.grid.directions.shape
+            row = int(self.row)
+            column = int(self.column)
+            if 0 <= row < shape[0] and 0 <= column < shape[1]:
+                direction = self.grid.directions[row, column]
+            else:
+                direction = b'?'
+
+            do_teleport = random.randint(0, 100)
+            if do_teleport <= 10 and direction in [b'v', b'>', b'^', b'<']:
+                # calculate where to teleport, but not closer than 10 steps from the goal
+                possible_destinations = np.argwhere(self.grid.grid_model.result.distances >= 10)
+                destination_index = random.randint(0, len(possible_destinations) - 1)
+                await self.teleport(*possible_destinations[destination_index])
+            else:
+                if direction == b'v':
+                    await self.step(1, 0)
+                elif direction == b'>':
+                    await self.step(0, 1)
+                elif direction == b'^':
+                    await self.step(-1, 0)
+                elif direction == b'<':
+                    await self.step(0, -1)
+                else:
+                    await self.jump()
+
+    async def teleport(self, row, column):
+        # jump
+        # await self.jump()
+        print("Teleporting!")
+
+        with self._update_context():
+            original_kind = self.kind
+            # disappear
+            self.kind = 0
+
+        with self._update_context():
+            self.row = row
+            self.column = column
+            # appear agian
+            self.kind = original_kind

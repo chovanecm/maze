@@ -31,8 +31,17 @@ class Game:
         maze = wrapped_grid_model.grid_model.array
         dude_positions = np.argwhere(
             (maze >= min(gridmodel.GridModel.DUDE_VALUES)) & (maze <= max(grid_model.DUDE_VALUES)))
-        self.actors = [actor.Actor(wrapped_grid_model, row, column, wrapped_grid_model.grid_model.array[row, column])
-                       for row, column in dude_positions]
+
+        def create_actor(row, column):
+            even = actor.TeleporterActor
+            odd = actor.Actor
+            kind = wrapped_grid_model.grid_model.array[row, column]
+            if kind % 2 == 0:
+                return even(wrapped_grid_model, row, column, wrapped_grid_model.grid_model.array[row, column])
+            else:
+                return odd(wrapped_grid_model, row, column, wrapped_grid_model.grid_model.array[row, column])
+
+        self.actors = [create_actor(row, column) for row, column in dude_positions]
         # remove guys from startup positions in the game copy of array
         for dude_position in dude_positions:
             maze[tuple(dude_position)] = 0

@@ -321,7 +321,8 @@ def main():
                 painter = QtGui.QPainter(self)
                 for actor in self.moving_dudes:
                     rect = QtCore.QRectF(actor.column * CELL_SIZE, actor.row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-                    self._draw_dude(rect, actor.kind, painter)
+                    if actor.kind > 0:
+                        self._draw_dude(rect, actor.kind, painter)
 
             def draw_paths(self, row, column, value, old_value):
                 # Do not draw paths
